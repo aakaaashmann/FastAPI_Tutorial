@@ -29,3 +29,6 @@ def all(db : Session = Depends(get_db)):
     blogs = db.query(models.Blog).all()
     return blogs
 
+@app.get("/blog")
+def temp():
+    pass
