@@ -1,8 +1,9 @@
+from typing import List
 from fastapi import FastAPI , Depends , status , Response, HTTPException
-from . import schemas , models
+from . import schemas , models 
 from .database import engine , SessionLocal
 from sqlalchemy.orm import Session
-
+from .hashing import Hash
 
 app = FastAPI()
 
@@ -46,13 +47,13 @@ def update(id,request:schemas.Blog,db:Session = Depends(get_db)):
 
 
 #to fetch all the blogs
-@app.get("/blog")
+@app.get("/blog", response_model = List[schemas.ShowBlog])
 def all(db : Session = Depends(get_db)):
     blogs = db.query(models.Blog).all()
     return blogs
 
 #show the particular blog with particular id
-@app.get("/blog/{id}",status_code = 200)
+@app.get("/blog/{id}",status_code = status.HTTP_200_OK, response_model=schemas.ShowBlog)
 def temp(id, response : Response ,db : Session = Depends(get_db)):
     #this is a filter (or say where) in sql and we are getting the fist blog not all the blogs
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
@@ -62,3 +63,11 @@ def temp(id, response : Response ,db : Session = Depends(get_db)):
         # return {"detail":f"Blog with the id {id} is not available"}
     return blog
 
+#creating a new user
+@app.post("/user")
+def create_user(request : schemas.User,db : Session = Depends(get_db)):
+    new_user = models.User(name=request.name,email=request.email,password=Hash.bcrypt(request.password))
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
